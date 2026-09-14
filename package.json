@@ -1,0 +1,23 @@
+{
+  "name": "support-ticket-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Centralized Support Ticket System Monorepo",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"api,dash,wid\" -c \"blue,green,magenta\" \"npm run dev -w apps/api\" \"npm run dev -w apps/dashboard\" \"npm run dev -w apps/widget\"",
+    "dev:api": "npm run dev -w apps/api",
+    "dev:dashboard": "npm run dev -w apps/dashboard",
+    "dev:widget": "npm run dev -w apps/widget",
+    "build": "npm run build -w packages/shared-types && npm run build -w apps/api && npm run build -w apps/dashboard && npm run build -w apps/widget",
+    "test": "npm run test -w packages/shared-types && npm run test -w apps/api",
+    "typecheck": "npm run typecheck -w packages/shared-types && npm run typecheck -w apps/api && npm run typecheck -w apps/dashboard && npm run typecheck -w apps/widget"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  }
+}
