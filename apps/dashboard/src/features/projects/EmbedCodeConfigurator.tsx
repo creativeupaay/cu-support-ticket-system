@@ -26,7 +26,7 @@ interface EmbedCodeConfiguratorProps {
 export const EmbedCodeConfigurator: React.FC<EmbedCodeConfiguratorProps> = ({
   projectKey,
   projectName,
-  widgetOrigin = 'http://localhost:5174',
+  widgetOrigin = import.meta.env.VITE_WIDGET_URL || 'http://localhost:5174',
 }) => {
   const [mode, setMode] = useState<EmbedMode>('floating');
   const [framework, setFramework] = useState<EmbedFramework>('html');

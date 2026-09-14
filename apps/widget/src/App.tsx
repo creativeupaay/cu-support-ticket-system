@@ -37,6 +37,16 @@ export const App: React.FC = () => {
     requesterEmail?: string;
   } | null>(null);
 
+  // Helper to resolve API endpoint (checks URL parameter ?api= first, then VITE_API_BASE_URL)
+  const getApiUrl = (endpoint: string) => {
+    const params = new URLSearchParams(window.location.search);
+    const apiParam = params.get('api') || import.meta.env.VITE_API_BASE_URL || '';
+    const rawBase = apiParam.replace(/\/+$/, '');
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const normalizedEndpoint = cleanEndpoint.startsWith('/api') ? cleanEndpoint : `/api${cleanEndpoint}`;
+    return rawBase ? `${rawBase}${normalizedEndpoint}` : normalizedEndpoint;
+  };
+
   // 1. Read projectKey from URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -58,7 +68,7 @@ export const App: React.FC = () => {
       setSchemaError(null);
 
       try {
-        const res = await fetch(`/api/public/v1/projects/${projectKey}/schema`);
+        const res = await fetch(getApiUrl(`/public/v1/projects/${projectKey}/schema`));
         const json = await res.json();
 
         if (!res.ok) {
@@ -110,7 +120,7 @@ export const App: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const uploadRes = await fetch(`/api/public/v1/projects/${projectKey}/upload`, {
+      const uploadRes = await fetch(getApiUrl(`/public/v1/projects/${projectKey}/upload`), {
         method: 'POST',
         body: formData,
       });
@@ -141,7 +151,7 @@ export const App: React.FC = () => {
     setSubmitError(null);
 
     try {
-      const res = await fetch(`/api/public/v1/projects/${projectKey}/tickets`, {
+      const res = await fetch(getApiUrl(`/public/v1/projects/${projectKey}/tickets`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

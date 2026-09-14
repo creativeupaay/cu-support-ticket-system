@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Clock, FileText, Paperclip, AlertCircle, CheckCircle } from 'lucide-react';
 import { StageBadge } from '../../components/common/StageBadge';
+import { apiClient } from '../../lib/api';
 
 interface PublicStatusData {
   ticketNumber: string;
@@ -35,12 +36,10 @@ export const PublicStatusPage: React.FC = () => {
   const { data, isLoading, error } = useQuery<PublicStatusData>({
     queryKey: ['publicStatus', statusToken],
     queryFn: async () => {
-      const res = await fetch(`/api/public/v1/status/${statusToken}`);
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error?.message || 'Failed to fetch ticket status');
-      }
-      return json.data;
+      const res = await apiClient<{ success: boolean; data: PublicStatusData }>(
+        `/public/v1/status/${statusToken}`
+      );
+      return res.data;
     },
     enabled: !!statusToken,
   });

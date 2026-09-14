@@ -1,7 +1,13 @@
-const API_BASE = '/api';
+const RAW_API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
 
 export interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | undefined>;
+}
+
+export function getApiUrl(endpoint: string): string {
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const normalizedEndpoint = cleanEndpoint.startsWith('/api') ? cleanEndpoint : `/api${cleanEndpoint}`;
+  return RAW_API_BASE ? `${RAW_API_BASE}${normalizedEndpoint}` : normalizedEndpoint;
 }
 
 export async function apiClient<T = any>(endpoint: string, options: RequestOptions = {}): Promise<T> {
@@ -16,7 +22,7 @@ export async function apiClient<T = any>(endpoint: string, options: RequestOptio
     headers.set('Content-Type', 'application/json');
   }
 
-  let url = `${API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  let url = getApiUrl(endpoint);
 
   if (options.params) {
     const searchParams = new URLSearchParams();
