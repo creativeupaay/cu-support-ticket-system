@@ -5,18 +5,27 @@ let mongod: any = null;
 
 export async function connectDB(uri?: string): Promise<string> {
   const targetUri = uri || process.env.MONGODB_URI;
+  const isProduction = process.env.NODE_ENV === 'production';
 
   if (targetUri && targetUri.trim() !== '') {
     try {
       logger.info({ uri: targetUri.replace(/:\/\/.*@/, '://***:***@') }, 'Connecting to MongoDB...');
       await mongoose.connect(targetUri, {
-        serverSelectionTimeoutMS: 3000,
+        serverSelectionTimeoutMS: 10000,
       });
       logger.info('Connected to MongoDB database');
       return targetUri;
-    } catch (err) {
-      logger.warn({ err }, 'Failed to connect to provided MONGODB_URI. Falling back to in-memory MongoDB...');
+    } catch (err: any) {
+      logger.error({ err: err?.message || err }, 'Failed to connect to provided MONGODB_URI');
+      if (isProduction) {
+        throw new Error(`MongoDB connection failed in production: ${err?.message || err}`);
+      }
+      logger.warn('Falling back to in-memory MongoDB for local development...');
     }
+  }
+
+  if (isProduction) {
+    throw new Error('Fatal: MONGODB_URI environment variable is missing or failed to connect in production environment.');
   }
 
   // Fallback to in-memory mongodb for seamless local dev & test
