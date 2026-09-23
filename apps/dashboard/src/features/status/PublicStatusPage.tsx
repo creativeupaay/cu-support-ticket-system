@@ -1,9 +1,9 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Clock, FileText, Paperclip, AlertCircle, CheckCircle } from 'lucide-react';
+import { Clock, FileText, Paperclip, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
 import { StageBadge } from '../../components/common/StageBadge';
-import { apiClient } from '../../lib/api';
+import { apiClient, getApiUrl } from '../../lib/api';
 
 interface PublicStatusData {
   ticketNumber: string;
@@ -155,27 +155,103 @@ export const PublicStatusPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             {Object.entries(data.formResponses || {}).map(([key, value]) => {
               const label = fieldLabelMap.get(key) || key.replace(/_/g, ' ');
-              const isUrl = typeof value === 'string' && value.startsWith('http');
+              const strVal = Array.isArray(value) ? value.join(', ') : String(value || '');
+
+              const isFile =
+                strVal.startsWith('http://') ||
+                strVal.startsWith('https://') ||
+                strVal.includes('/attachments/') ||
+                strVal.includes('/uploads/') ||
+                strVal.includes('cloudinary');
+
+              const isImage =
+                isFile &&
+                (/\.(png|jpg|jpeg|webp|gif|svg|bmp)(\?.*)?$/i.test(strVal) ||
+                  strVal.includes('cloudinary') ||
+                  strVal.includes('unsplash') ||
+                  strVal.includes('/attachments/'));
+
+              const resolvedFileUrl = isFile
+                ? strVal.startsWith('http')
+                  ? strVal
+                  : getApiUrl(strVal)
+                : '';
+
+              const isFullWidth = isFile || strVal.length > 60;
 
               return (
-                <div key={key} className={typeof value === 'string' && value.length > 60 ? 'sm:col-span-2' : ''}>
-                  <div className="text-2xs font-semibold uppercase tracking-wider text-text-muted mb-1">
+                <div
+                  key={key}
+                  className={`min-w-0 overflow-hidden space-y-1 ${
+                    isFullWidth ? 'sm:col-span-2 col-span-full' : ''
+                  }`}
+                >
+                  <div className="text-2xs font-semibold uppercase tracking-wider text-text-muted">
                     {label}
                   </div>
 
-                  {isUrl ? (
-                    <a
-                      href={value as string}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 p-2.5 bg-surface-1 border border-border rounded-md text-brand-600 hover:bg-brand-50 transition-colors"
-                    >
-                      <Paperclip className="w-4 h-4" />
-                      <span className="truncate max-w-xs font-mono">{value as string}</span>
-                    </a>
+                  {isFile ? (
+                    <div className="rounded-lg border border-border bg-surface-1 p-3.5 space-y-2.5 overflow-hidden shadow-2xs">
+                      {isImage ? (
+                        <div className="space-y-2">
+                          <div className="relative group rounded-lg overflow-hidden bg-surface-2 border border-border flex items-center justify-center max-h-72">
+                            <img
+                              src={resolvedFileUrl}
+                              alt={label}
+                              className="w-full max-h-64 object-contain rounded-lg transition-transform duration-200 group-hover:scale-[1.01]"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                            <a
+                              href={resolvedFileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-xs font-semibold backdrop-blur-2xs"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              <span>View Full Size Image</span>
+                            </a>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 pt-1">
+                            <span className="text-2xs font-mono text-text-secondary truncate max-w-xs" title={strVal}>
+                              {strVal.split('/').pop() || 'Screenshot attachment'}
+                            </span>
+                            <a
+                              href={resolvedFileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1 bg-surface-0 hover:bg-surface-2 border border-border rounded-md text-2xs font-medium text-brand-700 transition-colors"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              <span>Open in new tab</span>
+                            </a>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Paperclip className="w-4 h-4 text-brand-600 shrink-0" />
+                            <span className="truncate font-mono text-xs text-text-primary" title={strVal}>
+                              {strVal.split('/').pop() || strVal}
+                            </span>
+                          </div>
+                          <a
+                            href={resolvedFileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-surface-0 hover:bg-surface-2 border border-border rounded-md text-2xs font-medium text-brand-700 transition-colors shrink-0"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            <span>Download / View</span>
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    <div className="p-3 bg-surface-1 rounded-md border border-border/60 text-text-primary font-medium leading-relaxed whitespace-pre-wrap">
-                      {Array.isArray(value) ? value.join(', ') : String(value)}
+                    <div className="p-3 bg-surface-1 rounded-lg border border-border/80 text-text-primary font-medium leading-relaxed whitespace-pre-wrap break-words shadow-2xs">
+                      {strVal || '—'}
                     </div>
                   )}
                 </div>

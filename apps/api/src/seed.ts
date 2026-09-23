@@ -5,7 +5,7 @@ import { logger } from './config/logger.js';
 
 export async function seedInitialData(): Promise<void> {
   try {
-    const password = 'Creative@123!';
+    const password = 'Creative@123';
     const passwordHash = await bcrypt.hash(password, 10);
     const organizationId = 'org_main_hub';
 

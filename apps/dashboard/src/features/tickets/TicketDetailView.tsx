@@ -10,7 +10,7 @@ import {
   Paperclip,
 } from 'lucide-react';
 import { StageBadge } from '../../components/common/StageBadge';
-import { apiClient } from '../../lib/api';
+import { apiClient, getApiUrl } from '../../lib/api';
 import type { Ticket, StageDefinition, FormFieldDefinition } from '@support-hub/shared-types';
 
 interface TicketDetailViewProps {
@@ -152,36 +152,109 @@ export const TicketDetailView: React.FC<TicketDetailViewProps> = ({
             Submitted Ticket Information
           </h3>
 
-          <div className="bg-surface-1 border border-border rounded-lg p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+          <div className="bg-surface-1 border border-border rounded-lg p-4 grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
             {Object.entries(ticket.formResponses || {}).map(([key, value]) => {
               const def = fieldMap.get(key);
               const label = def?.label || key.replace(/_/g, ' ');
+              const strVal = Array.isArray(value) ? value.join(', ') : String(value || '');
+              
               const isFile =
                 def?.type === 'file' ||
-                (typeof value === 'string' && (value.startsWith('http') || value.includes('cloudinary')));
+                strVal.startsWith('http://') ||
+                strVal.startsWith('https://') ||
+                strVal.includes('/attachments/') ||
+                strVal.includes('/uploads/') ||
+                strVal.includes('cloudinary');
+
+              const isImage =
+                isFile &&
+                (/\.(png|jpg|jpeg|webp|gif|svg|bmp)(\?.*)?$/i.test(strVal) ||
+                  strVal.includes('cloudinary') ||
+                  strVal.includes('unsplash') ||
+                  strVal.includes('/attachments/'));
+
+              const resolvedFileUrl = isFile
+                ? strVal.startsWith('http')
+                  ? strVal
+                  : getApiUrl(strVal)
+                : '';
+
+              const isFullWidth = isFile || def?.type === 'textarea' || strVal.length > 50;
 
               return (
-                <div key={key} className={def?.type === 'textarea' ? 'sm:col-span-2' : ''}>
-                  <div className="font-medium text-text-muted text-2xs uppercase tracking-wider mb-1">
+                <div
+                  key={key}
+                  className={`min-w-0 overflow-hidden space-y-1 ${
+                    isFullWidth ? 'sm:col-span-2 col-span-full' : ''
+                  }`}
+                >
+                  <div className="font-semibold text-text-muted text-2xs uppercase tracking-wider">
                     {label}
                   </div>
 
                   {isFile ? (
-                    <div className="mt-1">
-                      <a
-                        href={String(value)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 p-2 bg-surface-0 border border-border rounded-md text-brand-600 hover:bg-brand-50 transition-colors"
-                      >
-                        <Paperclip className="w-3.5 h-3.5" />
-                        <span className="truncate max-w-xs font-mono">{String(value)}</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+                    <div className="rounded-lg border border-border bg-surface-0 p-3 space-y-2.5 overflow-hidden shadow-2xs">
+                      {isImage ? (
+                        <div className="space-y-2">
+                          <div className="relative group rounded-lg overflow-hidden bg-surface-2 border border-border/80 flex items-center justify-center max-h-60">
+                            <img
+                              src={resolvedFileUrl}
+                              alt={label}
+                              className="w-full max-h-56 object-contain rounded-lg transition-transform duration-200 group-hover:scale-[1.01]"
+                              onError={(e) => {
+                                // Fallback icon on broken image
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                            <a
+                              href={resolvedFileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white text-xs font-semibold backdrop-blur-2xs"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              <span>View Full Size</span>
+                            </a>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 pt-1">
+                            <span className="text-2xs font-mono text-text-secondary truncate max-w-[200px]" title={strVal}>
+                              {strVal.split('/').pop() || 'Attachment image'}
+                            </span>
+                            <a
+                              href={resolvedFileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-1 hover:bg-surface-2 border border-border rounded text-2xs font-medium text-brand-700 transition-colors"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              <span>Open in new tab</span>
+                            </a>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Paperclip className="w-4 h-4 text-brand-600 shrink-0" />
+                            <span className="truncate font-mono text-xs text-text-primary" title={strVal}>
+                              {strVal.split('/').pop() || strVal}
+                            </span>
+                          </div>
+                          <a
+                            href={resolvedFileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface-1 hover:bg-surface-2 border border-border rounded text-2xs font-medium text-brand-700 transition-colors shrink-0"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            <span>Download / View</span>
+                          </a>
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <div className="text-text-primary font-medium bg-surface-0 p-2.5 rounded border border-border/70 whitespace-pre-wrap leading-relaxed">
-                      {Array.isArray(value) ? value.join(', ') : String(value)}
+                    <div className="text-text-primary font-medium bg-surface-0 p-2.5 rounded-lg border border-border/80 whitespace-pre-wrap leading-relaxed break-words shadow-2xs">
+                      {strVal || '—'}
                     </div>
                   )}
                 </div>

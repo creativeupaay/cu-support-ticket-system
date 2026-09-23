@@ -121,7 +121,7 @@ publicRouter.get('/status/:statusToken', async (req: Request, res: Response, nex
   }
 });
 
-// 6. Secure Attachment Streaming Endpoint (Streams from Private GCS Bucket)
+// 6. Secure Attachment Streaming Endpoint (Streams from Private GCS Bucket or Local Cache)
 publicRouter.get('/attachments/*', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const filePath = req.params[0];
@@ -135,6 +135,8 @@ publicRouter.get('/attachments/*', async (req: Request, res: Response, next: Nex
     }
 
     res.setHeader('Content-Type', fileData.contentType);
+    res.setHeader('Content-Disposition', 'inline');
+    res.setHeader('Access-Control-Allow-Origin', '*');
     if (fileData.contentLength) {
       res.setHeader('Content-Length', fileData.contentLength);
     }
